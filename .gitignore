@@ -2,5 +2,4 @@
 .Rhistory
 .RData
 .Ruserdata
-/data/polygons.rds
-/data/polyTBL.rds
+/rsconnect
