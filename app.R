@@ -13,14 +13,12 @@ library(shinydashboard)
 library(leaflet)
 library(leaflet.providers)
 library(sf)
+library(dplyr)
 
 
 # load data ----
 idaho <- readRDS('data/idaho.rds')
 quads <- readRDS('data/quads.rds')
-rrcr <- readRDS('data/rrcr.rds')
-# polygons <- readRDS('data/polygons.rds')
-# polyTBL <- readRDS('data/polyTBL.rds')
 qTBL <- quads %>% st_drop_geometry()
 
 # user interface ----
@@ -43,6 +41,8 @@ ui <- fluidPage(
                                  tableOutput(outputId='table')
                              ),
                              uiOutput(outputId='dl_button', inline=T),
+                             br(),
+                             textOutput(outputId='dl_size', inline=T),
                              br(),
                              br(),
                              h6(HTML('The stable repository for this data can be found on the
@@ -112,53 +112,85 @@ server <- function(input, output) {
     })
     
     # create a reactive value that will store the click position
-    data_of_click <- reactiveValues(clickedQuad=NULL)
+    click_list <- reactiveValues(ids=vector())  
     
     observeEvent(input$dl_map_shape_click, {
-        # if (input$tab_display == 'Data Download'){
-            data_of_click$clickedQuad <- input$dl_map_shape_click    
-        # }
+        click <- input$dl_map_shape_click
+        proxy <- leafletProxy('dl_map')
+        sel_q <- quads[quads$UID %in% click$id, ]
+        
+        # deselect or select
+        if (click$id %in% click_list$ids){
+            click_list$ids <- base::setdiff(click_list$ids, click$id)
+            proxy %>% 
+                removeShape(layerId=click$id)%>% 
+                addPolygons(data=sel_q$geometry, weight=0.2, fillColor='transparent', color='black', layerId=sel_q$UID)
+        } else{
+            click_list$ids <- c(click_list$ids, click$id)
+            proxy %>% 
+                addPolygons(data=sel_q$geometry, weight=1, fillColor='transparent', color='blue', layerId=sel_q$UID)
+        }
     })
     
     # make table
     output$table <- renderTable({
-        if (is.null(data_of_click$clickedQuad)) {
-            return(NULL)
-        }
-        return(
-            subset(qTBL, UID==data_of_click$clickedQuad$id)
-        )
+        return(subset(qTBL, UID %in% click_list$ids))
     })
     
     # add download button
     output$dl_button <- renderUI({
-        if (is.null(data_of_click$clickedQuad)) {
+        if (length(click_list$ids)==0) {
             return(NULL)
         }
-        return(
-            tagList(
-                actionButton(inputId='dl',
-                             label=paste0('Download q',data_of_click$clickedQuad$id,'.zip'),
-                             onclick="window.open('http://google.com', '_blank')",
-                             style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+        if (length(click_list$ids)==1){
+            return(
+                tagList(
+                    actionButton(inputId='dl',
+                                 label=paste0('Download q',click_list$ids,'.zip'),
+                                 onclick="window.open('http://google.com', '_blank')",
+                                 style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+                )
             )
-        )
+        }
+        if (length(click_list$ids)>1){
+            return(
+                tagList(
+                    actionButton(inputId='dl',
+                                 label='Download Multiple *.zip',
+                                 onclick="window.open('https://data.nkn.uidaho.edu/dataset/fine-scale-habitat-patches-idaho-attributed-climatic-topographic-soil-vegetation-and')",
+                                 style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+                )
+            )
+        }
     })
-    
-    # map for example area
-    output$ex_map <- renderLeaflet({
-        leaflet(options=leafletOptions(minZoom=12), height='100%') %>%
-            addTiles() %>%
-            addPolygons(data=rrcr$geometry, weight=2, fillColor='transparent', color='black') %>%
-            # addPolygons(data=polygons$geometry, weight=0.2, fillColor='transparent', color='black') %>%
-            # addPolygons(data=quads$geometry, weight=1, fillColor='transparent', color='grey30',
-            #             highlightOptions=highlightOptions(color='yellow', weight=2, bringToFront=T),
-            #             #popup=popupTable(dft, row.numbers=F, feature.id=F),
-            #             label=quads$NAME, layerId=quads$UID) %>%
-            addScaleBar('bottomright', options=scaleBarOptions(maxWidth=300, metric=T, imperial=T)) %>%
-            setView(-114.3988, 43.3972, zoom=12) %>%
-            setMaxBounds(-114.64, 43.23, -114.15, 43.56)
+        
+    # add download size
+    output$dl_size <- renderPrint({
+        return(subset(qTBL, UID %in% click_list$ids) %>% pull(NAME) %>% paste0(.) %>% print(.))
+        # return(subset(qTBL, UID %in% click_list$ids) %>% 
+        #            summarise(sizemb=sum(Mb), 
+        #                      sizegb=sizemb*0.001,
+        #                      out=ifelse(sizegb<1.0, paste0(sizemb,' Mb'), paste0(sizegb,' Gb'))) %>%
+        #            pull(out) %>% 
+        #            print(.)
+        # )
+            
     })
+
+    # # map for example area
+    # output$ex_map <- renderLeaflet({
+    #     leaflet(options=leafletOptions(minZoom=12), height='100%') %>%
+    #         addTiles() %>%
+    #         addPolygons(data=rrcr$geometry, weight=2, fillColor='transparent', color='black') %>%
+    #         # addPolygons(data=polygons$geometry, weight=0.2, fillColor='transparent', color='black') %>%
+    #         # addPolygons(data=quads$geometry, weight=1, fillColor='transparent', color='grey30',
+    #         #             highlightOptions=highlightOptions(color='yellow', weight=2, bringToFront=T),
+    #         #             #popup=popupTable(dft, row.numbers=F, feature.id=F),
+    #         #             label=quads$NAME, layerId=quads$UID) %>%
+    #         addScaleBar('bottomright', options=scaleBarOptions(maxWidth=300, metric=T, imperial=T)) %>%
+    #         setView(-114.3988, 43.3972, zoom=12) %>%
+    #         setMaxBounds(-114.64, 43.23, -114.15, 43.56)
+    # })
 }
 
 # Run the application 
