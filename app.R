@@ -19,6 +19,7 @@ library(dplyr)
 # load data ----
 idaho <- readRDS('data/idaho.rds')
 quads <- readRDS('data/quads.rds')
+exmpDoc <- 'data/rrcr_example.html'
 qTBL <- quads %>% st_drop_geometry()
 
 # user interface ----
@@ -44,6 +45,8 @@ ui <- fluidPage(
                              br(),
                              textOutput(outputId='dl_size', inline=T),
                              br(),
+                             textOutput(outputId='dk_size', inline=T),
+                             br(),
                              br(),
                              h6(HTML('The stable repository for this data can be found on the
                              <a href="https://data.nkn.uidaho.edu/dataset/fine-scale-habitat-patches-idaho-attributed-climatic-topographic-soil-vegetation-and">
@@ -63,33 +66,38 @@ ui <- fluidPage(
                      tags$style(type = "text/css", "#dl_map {height: calc(100vh - 100px) !important;}")
                  )
              )
+        ),
+        tabPanel('Example Data', value='ex_tab',
+             sidebarLayout(
+                 sidebarPanel(
+                     fluidRow(
+                         column(width=12,
+                                h4(HTML('<b>Rinker Rock Creek Ranch</b>')),
+                                h5(HTML('<i>Rinker Rock Creek Ranch is a research, education, and outreach facility
+                                        located near Hailey, ID.</i><br/><br/>
+                                        We applied species distribution models from McCarely et al. 2020
+                                        using distal and proximal variables to the habitat patches for Rinker Rock
+                                        Creek Ranch and some of the surrounding area to give an example of the general
+                                        size and structure of the habiat patches in the data repository.')),
+                                br(),
+                                h6(HTML('The stable repository for this data can be found on the
+                             <a href="https://data.nkn.uidaho.edu/dataset/fine-scale-habitat-patches-idaho-attributed-climatic-topographic-soil-vegetation-and">
+                             Northwest Knowledge Network.</a><br/><br/>
+                             These data were developed for open access and can be used without additional permissions or fees
+                             under creative commons license CC BY 4.0. If you use these data in a publication, presentation,
+                             or other research product please use the following citation:<br/><br/>
+                             McCarley, T. Ryan; Ball, Tara M.; Aycrigg, Jocelyn L.; Strand, Eva K.; Svancara, Leona K.;
+                             Horne, Jon S.; Johnson, Tracey N.; Lonneker, Meghan K.; Hurley, Mark. 2020.
+                             Predicting fine-scale forage distribution to inform ungulate nutrition.
+                             Ecological Informatics 60, 101170. Doi:10.1016/j.ecoinf.2020.101170.'))
+                         )
+                     )
+                 ),
+                 mainPanel(
+                     includeHTML(exmpDoc)
+                 )
+             )
         )
-        # tabPanel('Example Data', value='ex_tab',
-        #      sidebarLayout(
-        #          sidebarPanel(
-        #              fluidRow(
-        #                  column(width=12,
-        #                         h4(HTML('<b>Rinker Rock Creek Ranch</b>')),
-        #                         h5(HTML('<i>Rinker Rock Creek Ranch is a research, education, and outreach facility 
-        #                                 located near Hailey, ID.</i><br/><br/>
-        #                                 We applied species distribution models from McCarely et al. 2020
-        #                                 using distal and proximal variables to the habitat patches for Rinker Rock
-        #                                 Creek Ranch and some of the surrounding area to give an example of the general
-        #                                 size and structure of the habiat patches in the data repository.')),
-        #                         br()
-        #                         # div(style='height: calc(100vh*.3); overflow-y: scroll',
-        #                         #     tableOutput(outputId='table')
-        #                         # ),
-        #                         # uiOutput(outputId='dl_button', inline=T),
-        #                  )
-        #              )
-        #          ),
-        #          mainPanel(
-        #              leafletOutput('ex_map'),
-        #              tags$style(type = "text/css", "#ex_map {height: calc(100vh - 100px) !important;}")
-        #          )
-        #      )
-        # )
     )
 )
 
@@ -134,7 +142,7 @@ server <- function(input, output) {
     
     # make table
     output$table <- renderTable({
-        return(subset(qTBL, UID %in% click_list$ids))
+        return(subset(qTBL[,1:4], UID %in% click_list$ids))
     })
     
     # add download button
@@ -165,16 +173,33 @@ server <- function(input, output) {
     })
         
     # add download size
-    output$dl_size <- renderPrint({
-        return(subset(qTBL, UID %in% click_list$ids) %>% pull(NAME) %>% paste0(.) %>% print(.))
-        # return(subset(qTBL, UID %in% click_list$ids) %>% 
-        #            summarise(sizemb=sum(Mb), 
-        #                      sizegb=sizemb*0.001,
-        #                      out=ifelse(sizegb<1.0, paste0(sizemb,' Mb'), paste0(sizegb,' Gb'))) %>%
-        #            pull(out) %>% 
-        #            print(.)
-        # )
+    output$dl_size <- renderText({
+        if (length(click_list$ids)==0) {
+            return('None selected')
+        }
+        return(subset(qTBL, UID %in% click_list$ids) %>%
+                   summarise(sizemb=sum(Mb_zip),
+                             sizegb=sizemb*0.001,
+                             out=ifelse(sizegb<1.0, paste0(round(sizemb,1),' Mb'), paste0(round(sizegb,1),' Gb'))) %>%
+                   pull(out) %>% 
+                   paste0('Zipped: ',.)
+        )
             
+    })
+    
+    # add disk size
+    output$dk_size <- renderText({
+        if (length(click_list$ids)==0) {
+            return(invisible(NULL))
+        }
+        return(subset(qTBL, UID %in% click_list$ids) %>%
+                   summarise(sizemb=sum(Mb_shp),
+                             sizegb=sizemb*0.001,
+                             out=ifelse(sizegb<1.0, paste0(round(sizemb,1),' Mb'), paste0(round(sizegb,1),' Gb'))) %>%
+                   pull(out) %>% 
+                   paste0('Unzipped: ',.)
+        )
+        
     })
 
     # # map for example area
