@@ -1,0 +1,76 @@
+---
+output: html_fragment
+---
+
+```{r include=F}
+knitr::opts_knit$set(root.dir="F:/RProjects/idahovegShiny")
+```
+
+### Processing example
+```{r, message=F}
+# libraries
+library(sf)
+library(dplyr)
+library(glmnet)
+
+# load function to apply models to polygons (can be found on NKN archive site under /supplemental/SDMs)
+source('bin/applyModel.R')
+
+# apply model
+# select location of shapefile
+# apply Idaho Fescue (FEIDI2) model that employed distal and proximal variables
+ApplySDMtoPolygons(quadShp='F:/RRCRExample/data/polygons_rrcr.shp', 
+                   lassoModel='F:/RRCRExample/data/FEIDI2.rds', 
+                   overwrite='F:/RRCRExample/newData/')
+```
+
+### Explore example data
+```{r message=F, warning=F}
+# read in newly created polygons and examine
+MyPolygons <- sf::st_read('F:/RRCRExample/newData/polygons_rrcr.shp', quiet=T)
+head(MyPolygons)
+
+# the polygons are extremely large data, so we'll crop out a small portion of the data to work with
+MyPolygonsCrop <- sf::st_crop(MyPolygons, xmin=2467501, ymin=1350452, xmax=2468889, ymax=1351364)
+```
+
+#### Map percent probability of occurrence for Idaho Fescue
+```{r message=F, warning=F}
+library(ggplot2)
+ggplot() +
+  theme_minimal() +
+  geom_sf(data=MyPolygonsCrop, aes(fill=FEIDI2)) +
+  scale_fill_continuous(type='viridis')
+```
+
+#### Plot distribution of Idaho Fescue predictions in map
+```{r message=F, warning=F}
+ggplot(MyPolygonsCrop, aes(x=FEIDI2, y=..density..)) +
+  theme_light() +
+  geom_histogram(alpha=0.3, bins=30) +
+  geom_density(size=1)
+```
+
+#### Map percent tree cover
+```{r message=F, warning=F}
+ggplot() +
+  theme_minimal() +
+  geom_sf(data=MyPolygonsCrop, aes(fill=tc)) +
+  scale_fill_gradient(low='grey90', high='darkgreen')
+```
+
+#### Map percent soil organic matter 0-25cm in depth
+```{r message=F, warning=F}
+ggplot() +
+  theme_minimal() +
+  geom_sf(data=MyPolygonsCrop, aes(fill=om)) +
+  scale_fill_gradient(low='grey90', high='darkblue')
+```
+
+#### Map elevation in meters
+```{r message=F, warning=F}
+ggplot() +
+  theme_minimal() +
+  geom_sf(data=MyPolygonsCrop, aes(fill=ele)) +
+  scale_fill_gradientn(colours=terrain.colors(10))
+```
