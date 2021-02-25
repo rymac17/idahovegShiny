@@ -41,6 +41,9 @@ ui <- fluidPage(
                              div(style='height: calc(100vh*.3); overflow-y: scroll',
                                  tableOutput(outputId='table')
                              ),
+                             h6(HTML('<p style="color:red"><em><b>Update Feb 25, 2021: </b></em>Currently, the download 
+                             button will only link to the NKN archive website. Once the data is fully loaded on the NKN 
+                             site, I will update the download functionality.</p>')),
                              uiOutput(outputId='dl_button', inline=T),
                              br(),
                              textOutput(outputId='dl_size', inline=T),
@@ -155,7 +158,7 @@ server <- function(input, output) {
                 tagList(
                     actionButton(inputId='dl',
                                  label=paste0('Download q',click_list$ids,'.zip'),
-                                 onclick="window.open('http://google.com', '_blank')",
+                                 onclick="window.open('https://data.nkn.uidaho.edu/dataset/fine-scale-habitat-patches-idaho-attributed-climatic-topographic-soil-vegetation-and')",
                                  style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
                 )
             )
