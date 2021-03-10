@@ -41,8 +41,9 @@ ui <- fluidPage(
                              div(style='height: calc(100vh*.3); overflow-y: scroll',
                                  tableOutput(outputId='table')
                              ),
-                             h6(HTML('<p style="color:green"><em><b>Update Mar 10, 2021: </b></em>Data is now stored on the NKN site,
-                             download functionality of this site is enabled.</p>')),
+                             h6(HTML('<p style="color:green"><em><b>Update Mar 10, 2021: </b></em>
+                             Data is now stored on the NKN site, download functionality of this site is enabled. 
+                             Be aware that pop-up blockers can prevent the download window from being displayed.</p>')),
                              uiOutput(outputId='dl_button', inline=T),
                              br(),
                              textOutput(outputId='dl_size', inline=T),
