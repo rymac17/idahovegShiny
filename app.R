@@ -41,9 +41,8 @@ ui <- fluidPage(
                              div(style='height: calc(100vh*.3); overflow-y: scroll',
                                  tableOutput(outputId='table')
                              ),
-                             h6(HTML('<p style="color:red"><em><b>Update Feb 25, 2021: </b></em>Currently, the download 
-                             button will only link to the NKN archive website. Once the data is fully loaded on the NKN 
-                             site, I will update the download functionality.</p>')),
+                             h6(HTML('<p style="color:green"><em><b>Update Mar 10, 2021: </b></em>Data is now stored on the NKN site,
+                             download functionality of this site is enabled.</p>')),
                              uiOutput(outputId='dl_button', inline=T),
                              br(),
                              textOutput(outputId='dl_size', inline=T),
@@ -147,8 +146,7 @@ server <- function(input, output) {
     output$table <- renderTable({
         return(subset(qTBL[,1:4], UID %in% click_list$ids))
     })
-    
-    # add download button
+        
     output$dl_button <- renderUI({
         if (length(click_list$ids)==0) {
             return(NULL)
@@ -158,8 +156,8 @@ server <- function(input, output) {
                 tagList(
                     actionButton(inputId='dl',
                                  label=paste0('Download q',click_list$ids,'.zip'),
-                                 onclick="window.open('https://data.nkn.uidaho.edu/dataset/fine-scale-habitat-patches-idaho-attributed-climatic-topographic-soil-vegetation-and')",
-                                 style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
+                                 onclick=paste0("window.open('https://www.northwestknowledge.net/data/2eaece4b-d76c-44a2-8257-98278ddce694/Data/IdahoPolygons/q",click_list$ids,".zip')"),
+                                 style='color: #fff; background-color: #337ab7; border-color: #2e6da4')
                 )
             )
         }
@@ -168,7 +166,7 @@ server <- function(input, output) {
                 tagList(
                     actionButton(inputId='dl',
                                  label='Download Multiple *.zip',
-                                 onclick="window.open('https://data.nkn.uidaho.edu/dataset/fine-scale-habitat-patches-idaho-attributed-climatic-topographic-soil-vegetation-and')",
+                                 onclick=paste0("window.open('https://www.northwestknowledge.net/data/2eaece4b-d76c-44a2-8257-98278ddce694/Data/IdahoPolygons/q",click_list$ids,".zip')", collapse='; '),
                                  style="color: #fff; background-color: #337ab7; border-color: #2e6da4")
                 )
             )
